@@ -407,32 +407,33 @@ export function NewRentalDialog({ open, onOpenChange, initialEquipment, initialC
     setProblemEquipmentId((prev) => (prev === equipmentId ? null : prev));
     // 해당 발전기로 감지됐던 동반 직송 배너도 함께 정리한다 — 스텝퍼로 지정해뒀던
     // 수량이 있었다면 하단 총 수량 카운터에서도 되돌린다.
-    setWelderDonors((prev) => {
-      const donor = prev.find((d) => d.triggerEquipmentId === equipmentId);
-      if (donor) {
-        setTigCount((v) => Math.max(0, v - donor.swungTig));
-        setCo2Count((v) => Math.max(0, v - donor.swungCo2));
-      }
-      return prev.filter((d) => d.triggerEquipmentId !== equipmentId);
-    });
+    // setWelderDonors 업데이터 안에서 setTigCount/setCo2Count를 호출하면(부수효과) React
+    // StrictMode가 개발 모드에서 업데이터를 일부러 두 번 실행하면서 그 부수효과도 두 번
+    // 반영돼 수량이 배로 튄다 — 반드시 바깥에서 현재 상태를 읽어 한 번만 호출해야 한다.
+    const donor = welderDonors.find((d) => d.triggerEquipmentId === equipmentId);
+    if (donor) {
+      setTigCount((v) => Math.max(0, v - donor.swungTig));
+      setCo2Count((v) => Math.max(0, v - donor.swungCo2));
+    }
+    setWelderDonors((prev) => prev.filter((d) => d.triggerEquipmentId !== equipmentId));
   }
 
   // 배너의 TIG/CO2 스텝퍼 값을 바꾸는 즉시 하단 "총 투입 수량" 카운터에도 차액만큼
   // 그대로 반영한다 — 두 값이 항상 연동돼 있어야 사용자가 이중으로 손볼 필요가 없다.
+  // (위 removeAssigned와 같은 이유로 setTigCount/setCo2Count는 setWelderDonors 업데이터
+  // 밖에서, 딱 한 번만 호출한다.)
   function updateSwungWelder(orderId: string, field: "swungTig" | "swungCo2", next: number) {
-    setWelderDonors((prev) =>
-      prev.map((d) => {
-        if (d.orderId !== orderId) return d;
-        const max = field === "swungTig" ? d.donorTig : d.donorCo2;
-        const clamped = Math.max(0, Math.min(max, next));
-        const delta = clamped - d[field];
-        if (delta !== 0) {
-          if (field === "swungTig") setTigCount((v) => Math.max(0, v + delta));
-          else setCo2Count((v) => Math.max(0, v + delta));
-        }
-        return { ...d, [field]: clamped };
-      }),
-    );
+    const donor = welderDonors.find((d) => d.orderId === orderId);
+    if (!donor) return;
+    const max = field === "swungTig" ? donor.donorTig : donor.donorCo2;
+    const clamped = Math.max(0, Math.min(max, next));
+    const delta = clamped - donor[field];
+
+    setWelderDonors((prev) => prev.map((d) => (d.orderId === orderId ? { ...d, [field]: clamped } : d)));
+    if (delta !== 0) {
+      if (field === "swungTig") setTigCount((v) => Math.max(0, v + delta));
+      else setCo2Count((v) => Math.max(0, v + delta));
+    }
   }
 
   const assignedEquipments = useMemo(
