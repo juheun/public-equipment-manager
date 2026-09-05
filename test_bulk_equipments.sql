@@ -44,7 +44,7 @@ from (
     900000 + n as serial_no,
     -- AVAILABLE 비중을 살짝 높여 실제 운영 데이터의 분포(대기 물량이 가장 많음)에 가깝게 한다.
     (array['AVAILABLE', 'AVAILABLE', 'RENTED', 'MAINTENANCE'])[1 + floor(random() * 4)::int] as status,
-    (array['미르화학', '청람에너지파크', '새별이엔지 온산공장', '온빛중공업 거제조선소'])[1 + floor(random() * 4)::int] as site
+    (array['미르화학', '청람에너지파크', '새별이엔지 제1공장', '온빛중공업 제1조선소'])[1 + floor(random() * 4)::int] as site
   from generate_series(1, 500) as n
 ) t;
 

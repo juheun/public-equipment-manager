@@ -56,7 +56,7 @@ create table client_contacts (
 -- 3. 보관 장소 마스터 (자동 누적 및 드롭다운 선택)
 create table locations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL UNIQUE,          -- 예: 회사, 온산샵, 미르화학, 청람에너지파크
+    name TEXT NOT NULL UNIQUE,          -- 예: 회사, 제2창고, 미르화학, 청람에너지파크
     last_used_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_active BOOLEAN DEFAULT true,
     is_site BOOLEAN NOT NULL DEFAULT false -- true=외부 투입 현장, false=사내 보관 위치(본사측)
@@ -361,11 +361,11 @@ insert into client_contacts (client_id, contact_person, phone, last_used_at) val
 -- (둘 다 "장소" 자동완성/자동학습이라는 점에서 동일한 성격이므로 테이블을 분리하지 않음).
 insert into locations (id, name, last_used_at, is_site) values
     ('30000000-0000-0000-0000-000000000001', '회사', now(), false),
-    ('30000000-0000-0000-0000-000000000002', '온산샵', now(), false),
+    ('30000000-0000-0000-0000-000000000002', '제2창고', now(), false),
     ('30000000-0000-0000-0000-000000000004', '미르화학', now(), true),
     ('30000000-0000-0000-0000-000000000005', '청람에너지파크', now() - interval '20 days', true),
-    ('30000000-0000-0000-0000-000000000006', '새별이엔지 온산공장', now() - interval '60 days', true),
-    ('30000000-0000-0000-0000-000000000007', '온빛중공업 거제조선소', now() - interval '5 days', true);
+    ('30000000-0000-0000-0000-000000000006', '새별이엔지 제1공장', now() - interval '60 days', true),
+    ('30000000-0000-0000-0000-000000000007', '온빛중공업 제1조선소', now() - interval '5 days', true);
 
 -- 4.4 발전기 18대 — 제조사(도요/덴요/에어맨 신형/에어맨 구형/KW/구형 발전기) 및 표준 용량
 -- 6종(25/60/150/300/400/500kVA — new-equipment-dialog.tsx의 CAPACITY_PRESETS와 동일)만
@@ -382,13 +382,13 @@ insert into equipments (
     last_oil_change_date, last_oil_change_hours, notes,
     ownership_type, supplier_name
 ) values
-    ('40000000-0000-0000-0000-000000000001', '도요',        300, 1,    null, 'RENTED',      '새별이엔지 온산공장',
+    ('40000000-0000-0000-0000-000000000001', '도요',        300, 1,    null, 'RENTED',      '새별이엔지 제1공장',
         '2026-06-10', 1000, null, 'OWNED', null),
     ('40000000-0000-0000-0000-000000000002', '도요',        300, 12,   null, 'RENTED',      '미르화학',
         '2026-05-20', 2200, null, 'OWNED', null),
     ('40000000-0000-0000-0000-000000000003', '덴요',        400, 47,   null, 'MAINTENANCE', '회사',
         '2026-05-01', 2800, '아워미터 초과 - 정밀 점검 필요', 'OWNED', null),
-    ('40000000-0000-0000-0000-000000000004', '에어맨 신형', 500, 88,   null, 'AVAILABLE',   '온산샵',
+    ('40000000-0000-0000-0000-000000000004', '에어맨 신형', 500, 88,   null, 'AVAILABLE',   '제2창고',
         '2026-07-05', 860,  null, 'OWNED', null),
     ('40000000-0000-0000-0000-000000000005', 'KW',          150, 203,  null, 'AVAILABLE',   '회사',
         null,         null, '신규 도입', 'OWNED', null),
@@ -396,27 +396,27 @@ insert into equipments (
         '2026-07-14', 860,  null, 'OWNED', null),
     ('40000000-0000-0000-0000-000000000007', '덴요',        60,  5,    null, 'AVAILABLE',   '회사',
         null,         null, '신규 도입', 'OWNED', null),
-    ('40000000-0000-0000-0000-000000000008', '도요',        60,  8,    null, 'AVAILABLE',   '온산샵',
+    ('40000000-0000-0000-0000-000000000008', '도요',        60,  8,    null, 'AVAILABLE',   '제2창고',
         '2026-06-25', 50,   null, 'OWNED', null),
     ('40000000-0000-0000-0000-000000000009', '에어맨 신형', 300, 19,   null, 'RENTED',      '청람에너지파크',
         '2026-08-01', 450,  null, 'OWNED', null),
-    ('40000000-0000-0000-0000-000000000010', 'KW',          400, 26,   null, 'RENTED',      '온빛중공업 거제조선소',
+    ('40000000-0000-0000-0000-000000000010', 'KW',          400, 26,   null, 'RENTED',      '온빛중공업 제1조선소',
         '2026-07-20', 1800, null, 'OWNED', null),
     ('40000000-0000-0000-0000-000000000011', '구형 발전기', 25,  33,   null, 'MAINTENANCE', '회사',
         '2026-05-15', 3400, '브랜드 도장 마모로 제조사 확인 불가 - 노후장비, 아워미터 과다로 정밀 점검중', 'OWNED', null),
-    ('40000000-0000-0000-0000-000000000012', '도요',        150, 41,   null, 'AVAILABLE',   '온산샵',
+    ('40000000-0000-0000-0000-000000000012', '도요',        150, 41,   null, 'AVAILABLE',   '제2창고',
         '2026-07-10', 290,  null, 'OWNED', null),
     ('40000000-0000-0000-0000-000000000013', '덴요',        500, 56,   null, 'AVAILABLE',   '회사',
         null,         null, null, 'OWNED', null),
-    ('40000000-0000-0000-0000-000000000014', '에어맨 구형', 60,  64,   null, 'AVAILABLE',   '온산샵',
+    ('40000000-0000-0000-0000-000000000014', '에어맨 구형', 60,  64,   null, 'AVAILABLE',   '제2창고',
         '2026-06-01', 620,  null, 'OWNED', null),
-    ('40000000-0000-0000-0000-000000000015', 'KW',          300, 77,   null, 'RENTED',      '온빛중공업 거제조선소',
+    ('40000000-0000-0000-0000-000000000015', 'KW',          300, 77,   null, 'RENTED',      '온빛중공업 제1조선소',
         '2026-08-10', 1150, null, 'OWNED', null),
     ('40000000-0000-0000-0000-000000000016', '도요',        300, null, '늘봄 1호', 'AVAILABLE', '회사',
         null,         null, '월말 반환 예정', 'EXTERNAL', '늘봄렌탈'),
-    ('40000000-0000-0000-0000-000000000017', '덴요',        400, null, '하늘 A',  'RENTED',    '온빛중공업 거제조선소',
+    ('40000000-0000-0000-0000-000000000017', '덴요',        400, null, '하늘 A',  'RENTED',    '온빛중공업 제1조선소',
         null,         null, null, 'EXTERNAL', '하늘장비'),
-    ('40000000-0000-0000-0000-000000000018', '에어맨 신형', 150, null, '늘봄 2호', 'AVAILABLE', '온산샵',
+    ('40000000-0000-0000-0000-000000000018', '에어맨 신형', 150, null, '늘봄 2호', 'AVAILABLE', '제2창고',
         null,         null, '차입 계약기간 9/1~9/30', 'EXTERNAL', '늘봄렌탈');
 
 -- 4.5 팀 마스터
@@ -459,7 +459,7 @@ insert into rental_order_equipments (order_id, equipment_id) values
 -- (3) ACTIVE — 1팀 배차, 자사 보유(KW350) + 외부 차입(덴요450, 하늘장비) 발전기가 같은
 -- 전표에 함께 나간 케이스. 대시보드에서 외부 차입 뱃지가 자사 장비와 나란히 보이는지 검증한다.
 insert into rental_orders (id, order_number, client_id, client_name, site_name, team_id, dispatch_date, return_date, tig_count, co2_count, status, notes) values
-    ('60000000-0000-0000-0000-000000000003', 'R-20260825-003', '20000000-0000-0000-0000-000000000004', '온빛중공업', '온빛중공업 거제조선소',
+    ('60000000-0000-0000-0000-000000000003', 'R-20260825-003', '20000000-0000-0000-0000-000000000004', '온빛중공업', '온빛중공업 제1조선소',
      '70000000-0000-0000-0000-000000000002', '2026-08-25', null, 0, 2, 'ACTIVE', '조선소 정기 도크 작업 - 자사 KW350 + 차입 덴요450 동시 출고');
 
 insert into rental_order_equipments (order_id, equipment_id) values
@@ -468,7 +468,7 @@ insert into rental_order_equipments (order_id, equipment_id) values
 
 -- (4) ACTIVE — 2팀 배차, 오늘(2026-09-02) 막 나간 발전기 1대 + 티그 용접기 1대.
 insert into rental_orders (id, order_number, client_id, client_name, site_name, team_id, dispatch_date, return_date, tig_count, co2_count, status, notes) values
-    ('60000000-0000-0000-0000-000000000004', 'R-20260902-004', '20000000-0000-0000-0000-000000000003', '새별이엔지', '새별이엔지 온산공장',
+    ('60000000-0000-0000-0000-000000000004', 'R-20260902-004', '20000000-0000-0000-0000-000000000003', '새별이엔지', '새별이엔지 제1공장',
      '70000000-0000-0000-0000-000000000003', '2026-09-02', null, 1, 0, 'ACTIVE', '당일 배차');
 
 insert into rental_order_equipments (order_id, equipment_id) values
@@ -476,7 +476,7 @@ insert into rental_order_equipments (order_id, equipment_id) values
 
 -- (5) ACTIVE — 팀 미배정(team_id NULL) 케이스 + 발전기 1대 + CO2 용접기 1대, 반입 예정일 포함.
 insert into rental_orders (id, order_number, client_id, client_name, site_name, team_id, dispatch_date, return_date, tig_count, co2_count, status, notes) values
-    ('60000000-0000-0000-0000-000000000005', 'R-20260828-005', '20000000-0000-0000-0000-000000000004', '온빛중공업', '온빛중공업 거제조선소',
+    ('60000000-0000-0000-0000-000000000005', 'R-20260828-005', '20000000-0000-0000-0000-000000000004', '온빛중공업', '온빛중공업 제1조선소',
      null, '2026-08-28', '2026-09-10', 0, 1, 'ACTIVE', '팀 미배정 - 추후 배정 필요');
 
 insert into rental_order_equipments (order_id, equipment_id) values
@@ -500,8 +500,8 @@ insert into rental_order_equipments (order_id, equipment_id) values
 
 -- (8) COMPLETED — 용접기 없이 발전기만 나갔다 들어온 단순 케이스.
 insert into rental_orders (id, order_number, client_id, client_name, site_name, team_id, dispatch_date, return_date, tig_count, co2_count, status, notes) values
-    ('60000000-0000-0000-0000-000000000008', 'R-20260701-008', '20000000-0000-0000-0000-000000000003', '새별이엔지', '새별이엔지 온산공장',
-     '70000000-0000-0000-0000-000000000002', '2026-07-01', '2026-07-19', 0, 0, 'COMPLETED', '새별이엔지 온산공장 배관 보수 지원 - 반입 완료');
+    ('60000000-0000-0000-0000-000000000008', 'R-20260701-008', '20000000-0000-0000-0000-000000000003', '새별이엔지', '새별이엔지 제1공장',
+     '70000000-0000-0000-0000-000000000002', '2026-07-01', '2026-07-19', 0, 0, 'COMPLETED', '새별이엔지 제1공장 배관 보수 지원 - 반입 완료');
 
 insert into rental_order_equipments (order_id, equipment_id) values
     ('60000000-0000-0000-0000-000000000008', '40000000-0000-0000-0000-000000000008');
