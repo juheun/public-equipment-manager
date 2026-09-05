@@ -299,6 +299,73 @@ export function NewRentalDialog({ open, onOpenChange, initialEquipment, initialC
   // 투입 현장은 항상 외부 현장이어야 하므로 사내 위치는 후보에서 뺀다.
   const siteLocations = useMemo(() => locations.filter((l) => l.is_site), [locations]);
 
+  // 현장 직송(이미 RENTED)으로 배정되는 발전기가 물려있던 이전 ACTIVE 전표를 조회한다
+  // (조회만 하고 state는 건드리지 않는 순수 헬퍼) — handleAssignBySerial(번호 조회로
+  // 배정)과 아래 initialEquipment 오픈 이펙트(장비 상세/카드의 [대여] 버튼으로 배정)
+  // 양쪽에서 공유한다. 두 진입 경로 모두 "이미 다른 현장에 나가 있는 발전기를 직송으로
+  // 재배정"할 수 있으므로, 한쪽에만 이 조회가 있으면 그 경로에서는 용접기를 이전 현장에
+  // 방치하는 사고로 이어진다.
+  async function findDonorOrder(equipmentId: string) {
+    const supabase = createClient();
+    const { data: linkRows } = await supabase
+      .from("rental_order_equipments")
+      .select("order_id")
+      .eq("equipment_id", equipmentId)
+      .returns<Pick<RentalOrderEquipmentRow, "order_id">[]>();
+    const orderIds = (linkRows ?? []).map((r) => r.order_id).filter((id): id is string => !!id);
+    if (orderIds.length === 0) return null;
+
+    const { data: activeOrder } = await supabase
+      .from("rental_orders")
+      .select("id, site_name, tig_count, co2_count")
+      .eq("status", "ACTIVE")
+      .in("id", orderIds)
+      .limit(1)
+      .maybeSingle<Pick<RentalOrderRow, "id" | "site_name" | "tig_count" | "co2_count">>();
+
+    return activeOrder && (activeOrder.tig_count > 0 || activeOrder.co2_count > 0) ? activeOrder : null;
+  }
+
+  // 조회된 전표를 실제 "동반 직송" 배너 목록에 반영한다.
+  function addWelderDonor(
+    equipmentId: string,
+    order: Pick<RentalOrderRow, "id" | "site_name" | "tig_count" | "co2_count">,
+  ) {
+    setWelderDonors((prev) =>
+      prev.some((d) => d.orderId === order.id)
+        ? prev
+        : [
+            ...prev,
+            {
+              orderId: order.id,
+              siteName: order.site_name,
+              donorTig: order.tig_count,
+              donorCo2: order.co2_count,
+              swungTig: 0,
+              swungCo2: 0,
+              triggerEquipmentId: equipmentId,
+            },
+          ],
+    );
+  }
+
+  // initialEquipment(장비 상세/카드의 [대여] 버튼)로 열렸고 그 장비가 이미 RENTED
+  // 상태라면, 번호 조회 경로와 동일하게 동반 직송 배너를 조회한다. 위 렌더링 중
+  // setState 블록은 동기 초기화(배정 목록/폼 리셋)만 담당하므로, 비동기 조회는
+  // effect로 분리한다. setState(addWelderDonor)는 반드시 .then() 콜백 안에서만
+  // 호출한다 — 조회 함수 자체가 아니라 effect 밖에서 호출부가 반영을 맡는다.
+  useEffect(() => {
+    if (!open || !initialEquipment || initialEquipment.status !== "RENTED") return;
+    let cancelled = false;
+    findDonorOrder(initialEquipment.id).then((order) => {
+      if (cancelled || !order) return;
+      addWelderDonor(initialEquipment.id, order);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, initialEquipment]);
+
   // 발전기 번호(serial_no)로 역조회해 즉시 배정 목록에 추가한다 — 용량/제조사를
   // 눈으로 훑어 고르는 게 아니라, 현장 담당자가 부르는 번호를 그대로 입력하는
   // 실무 흐름에 맞춘 UI다. 정비중인 장비는 곧바로 막지 않고 "점검 완료 후 배정"
@@ -341,41 +408,8 @@ export function NewRentalDialog({ open, onOpenChange, initialEquipment, initialC
     // 남아있는지 조회해 "동반 직송" 배너를 띄운다 — 발전기만 옮기고 용접기는 이전
     // 현장에 방치되는 사고를 막기 위함.
     if (found.status === "RENTED") {
-      const supabase = createClient();
-      const { data: linkRows } = await supabase
-        .from("rental_order_equipments")
-        .select("order_id")
-        .eq("equipment_id", found.id)
-        .returns<Pick<RentalOrderEquipmentRow, "order_id">[]>();
-      const orderIds = (linkRows ?? []).map((r) => r.order_id).filter((id): id is string => !!id);
-      if (orderIds.length === 0) return;
-
-      const { data: activeOrder } = await supabase
-        .from("rental_orders")
-        .select("id, site_name, tig_count, co2_count")
-        .eq("status", "ACTIVE")
-        .in("id", orderIds)
-        .limit(1)
-        .maybeSingle<Pick<RentalOrderRow, "id" | "site_name" | "tig_count" | "co2_count">>();
-
-      if (activeOrder && (activeOrder.tig_count > 0 || activeOrder.co2_count > 0)) {
-        setWelderDonors((prev) =>
-          prev.some((d) => d.orderId === activeOrder.id)
-            ? prev
-            : [
-                ...prev,
-                {
-                  orderId: activeOrder.id,
-                  siteName: activeOrder.site_name,
-                  donorTig: activeOrder.tig_count,
-                  donorCo2: activeOrder.co2_count,
-                  swungTig: 0,
-                  swungCo2: 0,
-                  triggerEquipmentId: found.id,
-                },
-              ],
-        );
-      }
+      const order = await findDonorOrder(found.id);
+      if (order) addWelderDonor(found.id, order);
     }
   }
 
